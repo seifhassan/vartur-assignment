@@ -1,38 +1,41 @@
 import bcrypt from 'bcrypt';
-import { FastifyReply, FastifyRequest,FastifyInstance } from 'fastify';
-
+import redis from '../plugins/redis';
 
 export async function verifyPassword(plainPassword: string, hashedPassword: string) {
   return bcrypt.compare(plainPassword, hashedPassword);
 }
-export const authVerify = async (request: FastifyRequest, reply: FastifyReply) => {
-  try {
-    if (request.url.startsWith('/auth')) {
-      return;
-    }
-    const authHeader = request.headers.authorization;
-    console.log("Authorization header:", authHeader);
 
+export const authVerify = async (request, reply) => {
+  try {
+    const authHeader = request.headers.authorization;
     if (!authHeader) {
-      console.log("Authorization header missing");
       return reply.status(401).send({ message: 'Authorization header is missing' });
     }
 
-    const token = authHeader.split(' ')[1]; 
+    const token = authHeader.split(' ')[1];
+    console.log(token);
+    
     if (!token) {
-      console.log("Token is missing");
       return reply.status(401).send({ message: 'Token is missing' });
     }
+    const decoded = await request.jwtVerify();
+    
+    const userData:any = await redis.get(`user_token:${decoded.id}`); 
 
-    // Verify the JWT token
-    await request.jwtVerify(); 
+    const parsedUserData = JSON.parse(userData);
+   
+    if (parsedUserData.role !== 'admin') {
+      return reply.status(403).send({ message: 'Forbidden: You do not have admin privileges' });
+    }
 
-    console.log("Token verified successfully");
+
+    return; 
 
   } catch (error) {
     console.error("Token verification failed:", error);
     return reply.status(401).send({ message: 'Invalid or expired token' });
   }
 };
+
 
 

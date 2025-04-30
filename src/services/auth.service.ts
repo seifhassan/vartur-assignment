@@ -27,11 +27,13 @@ export async function login(username: string, password: string, reply: FastifyRe
     {
       id: user.id,
       username: user.username,
-      role: user.role,
     },
-    { expiresIn: '1h' }
+    { expiresIn: '10h' }
   );
 
-  await redis.set(`user_token:${user.id}`, token, 'EX', 3600);
+  await redis.set(`user_token:${user.id}`, JSON.stringify({
+    token,
+    role: user.role
+  }));
   return { token };
 }

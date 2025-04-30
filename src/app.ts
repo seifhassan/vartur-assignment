@@ -43,10 +43,17 @@ app.register(fastifySwaggerUi, {
     docExpansion: 'full',
   },
 });
-app.register(authRoutes, { prefix: '/auth' });
-app.addHook('onRequest', authVerify);
-app.register(categoryRoutes, { prefix: '/categories' });
-app.register(productRoutes, { prefix: '/products' });
 
+const privateRoutes = async (fastify: any, _opts: any) => {
+  fastify.addHook('onRequest', authVerify);
+  fastify.register(categoryRoutes, { prefix: '/categories' });
+  fastify.register(productRoutes, { prefix: '/products' });
+};
 
+const publicRoutes = async (fastify: any, _opts: any) => {
+  fastify.register(authRoutes, { prefix: '/auth' });
+}
+
+app.register(privateRoutes);
+app.register(publicRoutes);
 export default app;
